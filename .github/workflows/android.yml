@@ -1,57 +1,11 @@
-yaml
-name: Zbuduj aplikację na Androida
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  apk:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - uses: android-actions/setup-android@v3
-
-      - name: Pakiety Android 17 (API 37)
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
-
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.6.0'
-
-      - name: Skopiuj aplikację do projektu Androida
-        run: |
-          rm -rf android/app/src/main/assets/www
-          mkdir -p android/app/src/main/assets/www
-          cp index.html games.js android/app/src/main/assets/www/
-          cp -r icons android/app/src/main/assets/www/
-
-      - name: Zbuduj APK
-        run: gradle -p android assembleRelease --no-daemon --stacktrace
-
-      - name: Nazwa pliku
-        run: cp android/app/build/outputs/apk/release/app-release.apk BoardGameCalendar.apk
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: BoardGameCalendar-apk
-          path: BoardGameCalendar.apk
-
-      - name: Opublikuj w Releases
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: android-${{ github.run_number }}
-          name: BoardGameCalendar (wersja ${{ github.run_number }})
-          body: Pobierz BoardGameCalendar.apk na telefonie i otwórz go.
-          files: BoardGameCalendar.apk
-          make_latest: true
+{"name": "Zbuduj aplikację na Androida", "on": {"push": {"branches": ["main"]}, "workflow_dispatch": {}}, "permissions": {"contents": "write"}, "jobs": {"apk": {"runs-on": "ubuntu-latest", "steps": [
+{"uses": "actions/checkout@v4"},
+{"uses": "actions/setup-java@v4", "with": {"distribution": "temurin", "java-version": "17"}},
+{"uses": "android-actions/setup-android@v3"},
+{"name": "Pakiety Android 17 (API 37)", "run": "sdkmanager \"platforms;android-37\" \"build-tools;36.0.0\""},
+{"uses": "gradle/actions/setup-gradle@v4", "with": {"gradle-version": "9.6.0"}},
+{"name": "Skopiuj aplikację do projektu Androida", "run": "rm -rf android/app/src/main/assets/www\nmkdir -p android/app/src/main/assets/www\ncp index.html games.js android/app/src/main/assets/www/\ncp -r icons android/app/src/main/assets/www/\n"},
+{"name": "Zbuduj APK", "run": "gradle -p android assembleRelease --no-daemon --stacktrace"},
+{"name": "Nazwa pliku", "run": "cp android/app/build/outputs/apk/release/app-release.apk BoardGameCalendar.apk"},
+{"uses": "actions/upload-artifact@v4", "with": {"name": "BoardGameCalendar-apk", "path": "BoardGameCalendar.apk"}},
+{"name": "Opublikuj w Releases", "uses": "softprops/action-gh-release@v2", "with": {"tag_name": "android-${{ github.run_number }}", "name": "BoardGameCalendar (wersja ${{ github.run_number }})", "body": "Pobierz BoardGameCalendar.apk na telefonie i otwórz go.", "files": "BoardGameCalendar.apk", "make_latest": true}}]}}}
