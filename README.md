@@ -1,4 +1,4 @@
-# BoardGameCalendar
+# QuestKeep
 
 Darmowy, niekomercyjny kalendarz rozgrywek planszowych: w co, kiedy i w ile osób się grało. Działa na telefonie jak aplikacja (PWA), także bez internetu.
 
@@ -29,11 +29,11 @@ Aplikacja pokazuje to logo w stopce, z linkiem do BoardGameGeek. Dopóki pliku n
 
 ## Plik APK na Androida (budowany automatycznie)
 
-W repozytorium jest projekt aplikacji na Androida (folder `android`) i automat GitHub Actions (`.github/workflows/android.yml`). Po każdej zmianie w repozytorium GitHub sam buduje plik **BoardGameCalendar.apk**. Plik jest zbudowany na **Androida 17 (API 37)** i działa na telefonach z Androidem 7 lub nowszym.
+W repozytorium jest projekt aplikacji na Androida (folder `android`) i automat GitHub Actions (`.github/workflows/android.yml`). Po każdej zmianie w repozytorium GitHub sam buduje plik **QuestKeep.apk**. Plik jest zbudowany na **Androida 17 (API 37)** i działa na telefonach z Androidem 7 lub nowszym.
 
 1. Upewnij się, że w repozytorium jest plik `.github/workflows/android.yml`. Folder `.github` jest ukryty i przy przeciąganiu plików czasem się pomija. Wtedy utwórz go ręcznie: *Add file → Create new file*, nazwa `.github/workflows/android.yml`, i wklej zawartość.
 2. Zakładka **Actions**: budowanie trwa około 5 minut. Zielony znaczek oznacza gotowe.
-3. Zakładka **Releases** (po prawej na stronie repozytorium) albo adres `https://github.com/TWOJA-NAZWA/NAZWA-REPO/releases/latest`. Na telefonie pobierz stamtąd **BoardGameCalendar.apk**.
+3. Zakładka **Releases** (po prawej na stronie repozytorium) albo adres `https://github.com/TWOJA-NAZWA/NAZWA-REPO/releases/latest`. Na telefonie pobierz stamtąd **QuestKeep.apk**.
 4. Otwórz pobrany plik. Android poprosi o zgodę na instalowanie aplikacji z tego źródła (przeglądarki lub menedżera plików). Zezwól.
 5. Google Play Protect może zaproponować sprawdzenie aplikacji od nieznanego twórcy. To normalne przy aplikacjach spoza Sklepu Play: wybierz sprawdzenie albo „Zainstaluj mimo to”.
 

@@ -1,6 +1,6 @@
 /* Service worker: aplikacja działa offline po pierwszym otwarciu.
    Po każdej zmianie plików podnieś numer wersji, żeby telefony pobrały nowe pliki. */
-const CACHE = "bgc-v4";
+const CACHE = "qk-v5";
 const FILES = ["./", "index.html", "games.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-192.png", "icons/maskable-512.png",
   "icons/apple-touch-icon.png", "icons/logo-96.png", "icons/powered-by-bgg.png"];

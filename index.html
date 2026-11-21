@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>BoardGameCalendar</title>
+<title>QuestKeep</title>
 <meta name="description" content="Kalendarz rozgrywek planszowych: w co, kiedy i w ile osób się grało. Baza gier z BoardGameGeek.">
 <meta name="theme-color" content="#2a2a2a">
 <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="BoardGameCalendar">
+<meta name="apple-mobile-web-app-title" content="QuestKeep">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -267,9 +267,9 @@ function lsSave(){try{localStorage.setItem("planszowki-state",JSON.stringify(sta
 function setSave(t){var el=document.getElementById("saveState");if(!el)return;var m={ok:["Zapisano na tym urządzeniu","ok"],err:["Nie udało się zapisać",""]}[t]||["",""];el.textContent=m[0];el.className="save "+m[1]}
 function persist(){state.rev=(state.rev||0)+1;setSave(lsSave()?"ok":"err")}
 function exportData(){
-  if(window.AndroidBridge&&AndroidBridge.saveFile){AndroidBridge.saveFile("boardgamecalendar-"+todayKey+".json",JSON.stringify(state,null,1));return}
+  if(window.AndroidBridge&&AndroidBridge.saveFile){AndroidBridge.saveFile("questkeep-"+todayKey+".json",JSON.stringify(state,null,1));return}
   var blob=new Blob([JSON.stringify(state,null,1)],{type:"application/json"});
-  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="boardgamecalendar-"+todayKey+".json";document.body.appendChild(a);a.click();
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="questkeep-"+todayKey+".json";document.body.appendChild(a);a.click();
   setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
 }
 function importData(file){
@@ -279,14 +279,14 @@ function importData(file){
     if(d.aliases&&typeof d.aliases==="object"){Object.keys(d.aliases).forEach(function(k){if(!state.aliases[k])state.aliases[k]=d.aliases[k]});setAliases(state.aliases)}
     d.sessions.forEach(function(s){if(s&&s.id&&s.date&&s.game&&!have[s.id]){s.game=canon(s.game);state.sessions.push(s);n++}});
     persist();renderAll();$("#ioMsg").textContent="Zaimportowano "+n+" "+plural(n,"rozgrywkę","rozgrywki","rozgrywek")+".";
-  }catch(e){$("#ioMsg").textContent="To nie jest plik kopii z BoardGameCalendar."}};
+  }catch(e){$("#ioMsg").textContent="To nie jest plik kopii z QuestKeep."}};
   r.readAsText(file);
 }
 /* szkielet */
 var app=document.getElementById("app");
 app.innerHTML=
 '<div class="wrap">'+
- '<header class="top"><div class="brand"><img class="logo" src="icons/logo-96.png" alt="" width="40" height="40"><h1>BoardGameCalendar</h1></div><span id="saveState" class="save"></span></header><p class="ver">Baza 31 757 gier z BoardGameGeek · dane zapisywane tylko na tym urządzeniu</p>'+
+ '<header class="top"><div class="brand"><img class="logo" src="icons/logo-96.png" alt="" width="40" height="40"><h1>QuestKeep</h1></div><span id="saveState" class="save"></span></header><p class="ver">Baza 31 757 gier z BoardGameGeek · dane zapisywane tylko na tym urządzeniu</p>'+
  '<div id="banner"></div>'+
  '<nav class="tabs" role="tablist">'+
   '<a href="#kalendarz" role="tab" data-v="kalendarz">Kalendarz</a>'+

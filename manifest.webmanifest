@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "BoardGameCalendar",
-  "short_name": "BoardGameCalendar",
+  "name": "QuestKeep",
+  "short_name": "QuestKeep",
   "description": "Kalendarz rozgrywek planszowych: w co, kiedy i w ile osób się grało.",
   "lang": "pl",
   "dir": "ltr",
