@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Numer wersji rośnie z każdym zbudowaniem na GitHubie, dzięki temu nowa wersja instaluje się na starej.
+def runNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer
+
+android {
+    namespace = 'pl.boardgamecalendar'
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = 'pl.boardgamecalendar'
+        minSdk = 24
+        targetSdk = 37
+        versionCode = runNumber
+        versionName = "1.0." + runNumber
+    }
+
+    signingConfigs {
+        release {
+            storeFile = file('release.keystore')
+            storePassword = System.getenv('KEYSTORE_PASSWORD') ?: 'boardgamecalendar'
+            keyAlias = System.getenv('KEY_ALIAS') ?: 'bgc'
+            keyPassword = System.getenv('KEY_PASSWORD') ?: 'boardgamecalendar'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = false
+            signingConfig = signingConfigs.release
+        }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BoardGameCalendar</title>
+<meta name="description" content="Kalendarz rozgrywek planszowych: w co, kiedy i w ile osób się grało. Baza gier z BoardGameGeek.">
+<meta name="theme-color" content="#2a2a2a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BoardGameCalendar">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: zakładki (kalendarz / statystyki / historia), kalendarz obok panelu dnia na szerokim ekranie, jedna kolumna na telefonie */
+:root{
+  --bg:#f2f4ef; --surface:#ffffff; --ink:#17221d; --muted:#5d6b64; --line:#dce2da;
+  --accent:#1b6a54; --accent-ink:#ffffff; --accent-soft:#dcece5; --hi:#e9a93a; --danger:#b23f2c;
+  --gbg:91%; --gfg:28%; --gdot:44%;
+  --font-d:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-b:"Figtree", "Segoe UI", system-ui, sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1613; --surface:#17211d; --ink:#e5ede8; --muted:#97a69f; --line:#28352f;
+    --accent:#52b896; --accent-ink:#0b1712; --accent-soft:#1d3229; --hi:#e7b04d; --danger:#e47d68;
+    --gbg:23%; --gfg:80%; --gdot:62%;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1613; --surface:#17211d; --ink:#e5ede8; --muted:#97a69f; --line:#28352f;
+  --accent:#52b896; --accent-ink:#0b1712; --accent-soft:#1d3229; --hi:#e7b04d; --danger:#e47d68;
+  --gbg:23%; --gfg:80%; --gdot:62%;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-b);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-d);text-wrap:balance;margin:0;letter-spacing:-.01em}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px 110px}
+.top{display:flex;align-items:center;gap:12px;padding:18px 0 10px}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.brand .logo{width:40px;height:40px;border-radius:10px;flex:none;display:block}
+.brand h1{font-size:22px}
+.save{font-size:12px;color:var(--muted);white-space:nowrap}
+.save.ok::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
+.ver{margin:-6px 0 10px;font-size:11.5px;color:var(--muted)}
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--accent-soft);border-radius:12px;padding:10px 14px;margin:4px 0 12px;font-size:14px}
+.banner p{margin:0;flex:1;min-width:200px}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs a{flex:1;text-align:center;text-decoration:none;color:var(--muted);font-weight:600;padding:8px 6px;border-radius:9px;font-size:14px}
+.tabs a[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.view[hidden]{display:none}
+/* przyciski */
+.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 16px;font-weight:600}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-weight:600;color:var(--ink)}
+.ghost.danger{color:var(--danger);border-color:transparent}
+.ghost.danger.armed{background:var(--danger);color:#fff}
+.sm{padding:6px 11px;font-size:13px}
+.iconbtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:20px;line-height:1;display:grid;place-items:center}
+/* kalendarz */
+.calgrid{display:grid;gap:16px}
+@media (min-width:860px){.calgrid{grid-template-columns:1.65fr 1fr;align-items:start}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+.monthbar{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.monthbar h2{flex:1;font-size:21px}
+.msum{margin:0 0 12px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dow{font-size:11px;font-weight:600;color:var(--muted);text-align:center;padding:2px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.cell{min-height:58px;border:1px solid transparent;background:var(--bg);border-radius:10px;padding:5px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;min-width:0}
+.cell.empty{background:transparent}
+.cell .dn{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.cell.today .dn{background:var(--hi);color:#1e1606;border-radius:6px;padding:2px 5px;margin:-2px 0 0 -2px}
+.cell.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.cell:not(.empty):hover{border-color:var(--line)}
+.cell.sel:hover{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:3px;width:100%;min-width:0}
+.chip{width:9px;height:9px;border-radius:50%;background:hsl(var(--h) 58% var(--gdot))}
+.chip .nm{display:none}
+.more{font-size:10px;color:var(--muted);font-weight:600;line-height:9px}
+@media (min-width:700px){
+  .cell{min-height:92px;padding:7px}
+  .chips{flex-direction:column;flex-wrap:nowrap}
+  .chip{width:100%;height:auto;border-radius:5px;background:hsl(var(--h) 60% var(--gbg));color:hsl(var(--h) 55% var(--gfg));font-size:11.5px;font-weight:600;padding:2px 5px;border-left:3px solid hsl(var(--h) 58% var(--gdot))}
+  .chip .nm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .more{line-height:1.2;padding-left:2px}
+}
+.dayhead{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.dayhead h3{flex:1;font-size:18px}
+.dayhead small{color:var(--muted)}
+.list{display:grid;gap:8px}
+.sess{display:flex;gap:10px;align-items:flex-start;background:var(--bg);border-radius:12px;padding:10px 10px 10px 0;overflow:hidden}
+.sbar{width:4px;align-self:stretch;border-radius:0 4px 4px 0;background:hsl(var(--h) 58% var(--gdot));flex:none}
+.sbody{flex:1;min-width:0}
+.srow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.srow strong{font-size:15.5px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums}
+.pill svg{width:13px;height:13px;fill:currentColor}
+.pill.win{border-color:transparent;background:color-mix(in srgb,var(--hi) 28%,transparent)}
+.pill.ex{border-style:dashed;color:var(--muted);font-weight:500}
+.smeta{font-size:13px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+.snote{font-size:13px;margin:4px 0 0;overflow-wrap:anywhere}
+.empty-msg{color:var(--muted);font-size:14px;margin:4px 0 12px}
+/* statystyki */
+.seg{display:inline-flex;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:14px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media (min-width:700px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.tile .v{font-family:var(--font-d);font-size:28px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile .v.txt{font-size:19px;line-height:1.2;padding-top:4px}
+.tile .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+.statgrid{display:grid;gap:16px}
+@media (min-width:860px){.statgrid{grid-template-columns:1fr 1fr}}
+.card h3{font-size:16px;margin-bottom:12px}
+.card h3 small{font-family:var(--font-b);font-weight:500;color:var(--muted);font-size:12.5px;margin-left:6px}
+.bars{display:grid;gap:9px}
+.brow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center}
+.brow .bn{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow .bc{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.brow .bt{grid-column:1/-1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
+.brow .bt i{display:block;height:100%;border-radius:4px;background:hsl(var(--h,160) 58% var(--gdot))}
+.brow .bs{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;align-items:end;height:150px;padding-top:18px}
+.col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:0}
+.col b{font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);font-weight:600}
+.col i{display:block;width:100%;max-width:30px;background:var(--accent);border-radius:4px 4px 2px 2px;min-height:2px}
+.col i.zero{background:var(--line)}
+.col span{font-size:10.5px;color:var(--muted)}
+.col.cur span{color:var(--ink);font-weight:700}
+/* historia */
+.search{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px;margin-bottom:14px}
+.hgroup{margin-bottom:18px}
+.hgroup h3{font-size:15px;margin:0 0 8px;color:var(--muted);font-family:var(--font-b);font-weight:600}
+.hrow{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 12px;text-align:left;margin-bottom:6px}
+.hrow .hd{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted)}
+.hrow .hg{min-width:0}
+.hrow .hg strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow .hg span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dotc{display:inline-block;width:8px;height:8px;border-radius:50%;background:hsl(var(--h) 58% var(--gdot));margin-right:6px;vertical-align:1px}
+/* FAB + arkusz */
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));background:var(--accent);color:var(--accent-ink);border:0;border-radius:16px;padding:14px 20px;font-weight:700;font-size:15px;box-shadow:0 6px 20px rgba(0,0,0,.22);display:flex;align-items:center;gap:8px}
+.fab span{font-size:22px;line-height:0}
+.sheet-wrap{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet-wrap[hidden]{display:none}
+.scrim{position:absolute;inset:0;background:rgba(8,14,11,.48)}
+.sheet{position:relative;background:var(--surface);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:20px 20px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));display:grid;gap:12px}
+@media (min-width:700px){.sheet-wrap{align-items:center}.sheet{border-radius:20px}}
+.sheet h2{font-size:21px}
+.fld{display:grid;gap:5px;min-width:0}
+.fld>span,.fld>label{font-size:13px;font-weight:600}
+.fld em{font-style:normal;font-weight:400;color:var(--muted)}
+.fld input,.fld textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-width:0}
+.fld textarea{resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:-4px}
+.quick button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600}
+.quick button i{display:inline-block;width:7px;height:7px;border-radius:50%;background:hsl(var(--h) 58% var(--gdot));margin-right:5px;vertical-align:1px}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);background:var(--bg);border-radius:10px;overflow:hidden}
+.stepper button{border:0;background:transparent;width:44px;height:42px;font-size:20px;font-weight:600}
+.stepper output{flex:1;text-align:center;font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+.err{color:var(--danger);font-size:13px;margin:0;min-height:0}
+.err:empty{display:none}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.actions .sp{flex:1}
+.gwrap{position:relative}
+.sugg{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.18);z-index:5;max-height:300px;overflow:auto;padding:4px}
+.sugg[hidden]{display:none}
+.sugg .sh{font-size:11.5px;font-weight:600;color:var(--muted);padding:6px 10px 2px;text-transform:uppercase;letter-spacing:.04em}
+.sugg button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:8px}
+.sugg button.act,.sugg button:hover{background:var(--accent-soft)}
+.sugg .sn{flex:1;min-width:0}
+.sugg .sn b{display:block;font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.sugg .sn small{display:block;font-size:12px;color:var(--muted)}
+.rk{flex:none;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);min-width:34px;text-align:right}
+.pill.bgg{border-color:transparent;background:var(--accent-soft)}
+.smeta.links{display:flex;gap:14px;flex-wrap:wrap}
+a.bgglink{font-size:12px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
+a.bgglink:hover{text-decoration:underline}
+.prog{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;margin:4px 0 12px}
+.prog i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-size:12.5px;font-weight:600;background:var(--bg);border-radius:999px;padding:3px 10px}
+.tags span b{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:4px}
+@media (prefers-reduced-motion:no-preference){
+  .sheet{animation:up .22s ease-out}
+  @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+}
+.io{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+.io label{cursor:pointer;display:inline-block}
+.foot{margin:28px 0 0;font-size:12px;color:var(--muted)}
+.foot a{color:var(--accent)}
+.foot p{margin:8px 0 0}
+.bggbadge{display:inline-block;font-weight:700;text-decoration:none}
+.bggbadge img{display:block;height:40px;width:auto}
+.wrap{padding-top:env(safe-area-inset-top)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="application/json" id="state">{"rev":1,"aliases":{"catan":"Osadnicy z Catanu","ticket to ride: europe":"Wsiąść do Pociągu: Europa","terraforming mars":"Terraformacja Marsa"},"sessions":[{"id":"ex1","date":"2026-10-04","game":"Catan","players":4,"names":"Ola, Marek, Kasia, Tomek","winner":"Marek","duration":95,"notes":"","ex":true},{"id":"ex2","date":"2026-10-04","game":"Azul","players":2,"names":"Ola, Marek","winner":"Ola","duration":35,"notes":"","ex":true},{"id":"ex3","date":"2026-10-11","game":"Ticket to Ride: Europe","players":3,"names":"Ola, Kasia, Tomek","winner":"Kasia","duration":60,"notes":"","ex":true},{"id":"ex4","date":"2026-10-18","game":"Dixit","players":6,"names":"","winner":"","duration":40,"notes":"Wieczór u znajomych","ex":true},{"id":"ex5","date":"2026-10-25","game":"Terraforming Mars","players":3,"names":"Ola, Marek, Tomek","winner":"Tomek","duration":150,"notes":"","ex":true},{"id":"ex6","date":"2026-11-01","game":"Cascadia","players":2,"names":"Ola, Marek","winner":"Ola","duration":30,"notes":"","ex":true},{"id":"ex7","date":"2026-11-07","game":"Catan","players":4,"names":"Ola, Marek, Kasia, Tomek","winner":"Ola","duration":110,"notes":"Z dodatkiem Żeglarze","ex":true},{"id":"ex8","date":"2026-11-08","game":"Splendor","players":3,"names":"Ola, Kasia, Marek","winner":"Kasia","duration":45,"notes":"","ex":true}]}</script>
+<script src="games.js"></script>
+<script>
+(function(){
+"use strict";
+var MONTHS=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+var MGEN=["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"];
+var MSHORT=["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
+var DOW=["Pn","Wt","Śr","Cz","Pt","So","Nd"];
+var WDAY=["Niedziela","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota"];
+var VIEWS=["kalendarz","statystyki","historia"];
+var ICON_P='<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="4.6" r="2.9"/><path d="M2.2 14.5c0-3.3 2.6-5.6 5.8-5.6s5.8 2.3 5.8 5.6z"/></svg>';
+var MEEPLE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a3.2 3.2 0 0 1 3.2 3.2c0 1-.4 1.8-1 2.4 3 .5 6.8 1.6 7.3 3 .3 1-1.6 1.6-4 1.6l2.9 7.3c.2.5-.2 1-.7 1h-4.4L12 16l-3.3 5H4.3c-.5 0-.9-.5-.7-1l2.9-7.3c-2.4 0-4.3-.6-4-1.6.5-1.4 4.3-2.5 7.3-3-.6-.6-1-1.4-1-2.4A3.2 3.2 0 0 1 12 2.5z"/></svg>';
+
+
+/* Katalog gier: BoardGameGeek (games.js, dane bez zmian). Własne nazwy gier użytkownik zapisuje w state.aliases. */
+var GAMES=(window.GAMES_DATA||[]).map(function(r){return{n:r[1],alt:[],p:0,h:0,b:r[3],y:r[2],pl:"",t:"",s:"",id:r[0]}});
+var GIDX={};GAMES.forEach(function(g){var k=g.n.toLowerCase();if(!GIDX[k])GIDX[k]=g});
+var ALIASES={},AREV={};
+function setAliases(o){ALIASES=o||{};AREV={};Object.keys(ALIASES).forEach(function(k){AREV[String(ALIASES[k]).toLowerCase()]=k})}
+function dn(name){return ALIASES[String(name||"").toLowerCase()]||name}
+function catOf(name){var k=String(name||"").trim().toLowerCase();return GIDX[k]||(AREV[k]&&GIDX[AREV[k]])||null}
+function canon(name){var k=String(name||"").trim().toLowerCase();if(AREV[k])return GIDX[AREV[k]]?GIDX[AREV[k]].n:AREV[k];var g=catOf(name);return g?g.n:String(name||"").trim()}
+function bggUrl(name){var g=catOf(name);if(g&&g.id)return"https://boardgamegeek.com/boardgame/"+g.id;return"https://boardgamegeek.com/geeksearch.php?action=search&objecttype=boardgame&q="+encodeURIComponent(name)}
+function gInfo(g){var a=[];if(g.b)a.push("BGG #"+g.b);if(g.y)a.push(String(g.y));return a.join(" · ")}
+
+var state;
+try{state=JSON.parse(document.getElementById("state").textContent)}catch(e){state={rev:1,sessions:[]}}
+if(!state||!Array.isArray(state.sessions))state={rev:1,sessions:[]};
+try{var ls0=JSON.parse(localStorage.getItem("planszowki-state")||"null");if(ls0&&Array.isArray(ls0.sessions))state=ls0}catch(e){}
+if(!state.aliases||typeof state.aliases!=="object")state.aliases={};setAliases(state.aliases);
+state.sessions.forEach(function(s){s.game=canon(s.game)});
+
+var now=new Date();
+function pad(n){return(n<10?"0":"")+n}
+function key(y,m,d){return y+"-"+pad(m+1)+"-"+pad(d)}
+var todayKey=key(now.getFullYear(),now.getMonth(),now.getDate());
+function parseKey(k){var p=k.split("-");return new Date(+p[0],+p[1]-1,+p[2])}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function plural(n,a,b,c){var t=n%10,h=n%100;if(n===1)return a;if(t>=2&&t<=4&&(h<12||h>14))return b;return c}
+function hue(name){var s=String(name||"").trim().toLowerCase(),h=7;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h%360}
+function fmtShort(k){var d=parseKey(k);return d.getDate()+" "+MSHORT[d.getMonth()]}
+function fmtLong(k){var d=parseKey(k);return WDAY[d.getDay()]+", "+d.getDate()+" "+MGEN[d.getMonth()]}
+function num1(x){return(Math.round(x*10)/10).toString().replace(".",",")}
+function namesOf(s){return String(s.names||"").split(",").map(function(x){return x.trim()}).filter(Boolean)}
+function sorted(){return state.sessions.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0})}
+
+/* stan widoku (przeżywa przeładowanie po zapisie) */
+var ui={y:now.getFullYear(),m:now.getMonth(),sel:todayKey,range:"all",q:""};
+try{var su=JSON.parse(sessionStorage.getItem("planszowki-ui")||"null");if(su)for(var k in su)ui[k]=su[k]}catch(e){}
+function saveUI(){try{sessionStorage.setItem("planszowki-ui",JSON.stringify(ui))}catch(e){}}
+
+/* zapis: dane zostają na tym urządzeniu (localStorage) */
+var readOnly=false;
+function lsSave(){try{localStorage.setItem("planszowki-state",JSON.stringify(state));return true}catch(e){return false}}
+function setSave(t){var el=document.getElementById("saveState");if(!el)return;var m={ok:["Zapisano na tym urządzeniu","ok"],err:["Nie udało się zapisać",""]}[t]||["",""];el.textContent=m[0];el.className="save "+m[1]}
+function persist(){state.rev=(state.rev||0)+1;setSave(lsSave()?"ok":"err")}
+function exportData(){
+  if(window.AndroidBridge&&AndroidBridge.saveFile){AndroidBridge.saveFile("boardgamecalendar-"+todayKey+".json",JSON.stringify(state,null,1));return}
+  var blob=new Blob([JSON.stringify(state,null,1)],{type:"application/json"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="boardgamecalendar-"+todayKey+".json";document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+function importData(file){
+  var r=new FileReader();
+  r.onload=function(){try{var d=JSON.parse(r.result);if(!d||!Array.isArray(d.sessions))throw 0;
+    var have={};state.sessions.forEach(function(s){have[s.id]=1});var n=0;
+    if(d.aliases&&typeof d.aliases==="object"){Object.keys(d.aliases).forEach(function(k){if(!state.aliases[k])state.aliases[k]=d.aliases[k]});setAliases(state.aliases)}
+    d.sessions.forEach(function(s){if(s&&s.id&&s.date&&s.game&&!have[s.id]){s.game=canon(s.game);state.sessions.push(s);n++}});
+    persist();renderAll();$("#ioMsg").textContent="Zaimportowano "+n+" "+plural(n,"rozgrywkę","rozgrywki","rozgrywek")+".";
+  }catch(e){$("#ioMsg").textContent="To nie jest plik kopii z BoardGameCalendar."}};
+  r.readAsText(file);
+}
+/* szkielet */
+var app=document.getElementById("app");
+app.innerHTML=
+'<div class="wrap">'+
+ '<header class="top"><div class="brand"><img class="logo" src="icons/logo-96.png" alt="" width="40" height="40"><h1>BoardGameCalendar</h1></div><span id="saveState" class="save"></span></header><p class="ver">Baza 31 757 gier z BoardGameGeek · dane zapisywane tylko na tym urządzeniu</p>'+
+ '<div id="banner"></div>'+
+ '<nav class="tabs" role="tablist">'+
+  '<a href="#kalendarz" role="tab" data-v="kalendarz">Kalendarz</a>'+
+  '<a href="#statystyki" role="tab" data-v="statystyki">Statystyki</a>'+
+  '<a href="#historia" role="tab" data-v="historia">Historia</a>'+
+ '</nav>'+
+ '<section class="view" id="v-kalendarz"><div class="calgrid">'+
+  '<div class="card"><div class="monthbar"><button type="button" class="iconbtn" id="prev" aria-label="Poprzedni miesiąc">‹</button><h2 id="mtitle"></h2><button type="button" class="ghost sm" id="todayBtn">Dziś</button><button type="button" class="iconbtn" id="next" aria-label="Następny miesiąc">›</button></div>'+
+  '<p class="msum" id="msum"></p><div class="cal" id="cal"></div></div>'+
+  '<div class="card" id="dayPanel"></div>'+
+ '</div></section>'+
+ '<section class="view" id="v-statystyki"></section>'+
+ '<section class="view" id="v-historia"><div class="io"><button type="button" class="ghost sm" id="expBtn">Zapisz kopię danych</button><label class="ghost sm" for="impFile">Wczytaj kopię</label><input type="file" id="impFile" accept="application/json,.json" hidden><span id="ioMsg" class="smeta"></span></div><input class="search" id="q" type="search" placeholder="Szukaj gry, gracza lub notatki" aria-label="Szukaj w historii"><div id="hist"></div></section>'+
+'<footer class="foot"><a class="bggbadge" href="https://boardgamegeek.com" target="_blank" rel="noopener"><img src="icons/powered-by-bgg.png" alt="Powered by BGG" height="40" onerror="this.replaceWith(document.createTextNode(\'Powered by BGG\'))"></a><p>Dane gier (nazwy, rok wydania, miejsce w rankingu) pochodzą z <a href="https://boardgamegeek.com" target="_blank" rel="noopener">BoardGameGeek</a> i są wyświetlane bez zmian. Aplikacja jest darmowa, niekomercyjna i nie jest powiązana z BoardGameGeek. Własne nazwy gier dopisujesz sam i są widoczne tylko u Ciebie.</p></footer>'+
+'</div>'+
+'<button type="button" class="fab" id="addBtn"><span>+</span> Dodaj rozgrywkę</button>'+
+'<div class="sheet-wrap" id="sheet" hidden><div class="scrim" data-close></div>'+
+ '<form class="sheet" id="form" role="dialog" aria-modal="true" aria-labelledby="fTitle" novalidate>'+
+  '<h2 id="fTitle">Nowa rozgrywka</h2>'+
+  '<div class="fld"><label for="fGame">Gra <em>(podpowiedzi z bazy BoardGameGeek)</em></label><div class="gwrap"><input id="fGame" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugg" aria-expanded="false" placeholder="np. Catan, Azul, Wingspan"><div class="sugg" id="sugg" role="listbox" hidden></div></div></div>'+
+  '<div class="quick" id="quick"></div>'+
+  '<label class="fld"><span>Twoja nazwa gry <em>(opcjonalnie, np. polski tytuł, zapamiętam ją)</em></span><input id="fAlias" autocomplete="off" placeholder="np. Osadnicy z Catanu"></label>'+
+  '<div class="row2"><label class="fld"><span>Data</span><input type="date" id="fDate"></label>'+
+  '<div class="fld"><span id="plLbl">Liczba graczy</span><div class="stepper" role="group" aria-labelledby="plLbl"><button type="button" id="pMinus" aria-label="Mniej graczy">−</button><output id="fPlayers">2</output><button type="button" id="pPlus" aria-label="Więcej graczy">+</button></div></div></div>'+
+  '<label class="fld"><span>Kto grał <em>(opcjonalnie, po przecinku)</em></span><input id="fNames" autocomplete="off" placeholder="Ola, Marek, Kasia"></label>'+
+  '<div class="row2"><label class="fld"><span>Zwycięzca <em>(opcj.)</em></span><input id="fWinner" list="namesList" autocomplete="off"></label>'+
+  '<label class="fld"><span>Czas gry <em>(min)</em></span><input id="fDur" type="number" inputmode="numeric" min="0" step="5"></label></div>'+
+  '<label class="fld"><span>Notatki</span><textarea id="fNotes" rows="2" placeholder="Dodatek, wariant, wrażenia…"></textarea></label>'+
+  '<p class="err" id="fErr" role="alert"></p>'+
+  '<div class="actions"><button type="button" class="ghost danger" id="fDel" hidden>Usuń</button><span class="sp"></span><button type="button" class="ghost" data-close>Anuluj</button><button type="submit" class="primary">Zapisz</button></div>'+
+ '</form></div>'+
+'<datalist id="gamesList"></datalist><datalist id="namesList"></datalist>';
+
+function $(s){return document.querySelector(s)}
+
+/* widok */
+function curView(){var h=location.hash.replace("#","");return VIEWS.indexOf(h)>=0?h:"kalendarz"}
+function renderView(){
+  var v=curView();
+  VIEWS.forEach(function(x){$("#v-"+x).hidden=x!==v});
+  document.querySelectorAll(".tabs a").forEach(function(a){a.setAttribute("aria-selected",a.getAttribute("data-v")===v?"true":"false")});
+  if(v==="statystyki")renderStats();
+  if(v==="historia")renderHist();
+}
+window.addEventListener("hashchange",renderView);
+
+function renderBanner(){
+  var hasEx=state.sessions.some(function(s){return s.ex});
+  $("#banner").innerHTML=(hasEx&&!readOnly)?'<div class="banner"><p>Na start kalendarz pokazuje kilka przykładowych rozgrywek, żeby było widać, jak działa. Usuń je, gdy zaczniesz dodawać swoje.</p><button type="button" class="ghost sm" id="clearEx">Usuń przykłady</button></div>':"";
+  $("#addBtn").hidden=readOnly;
+}
+$("#banner").addEventListener("click",function(e){
+  if(e.target.id==="clearEx"){state.sessions=state.sessions.filter(function(s){return!s.ex});persist();renderAll()}
+});
+
+function byDay(){var o={};state.sessions.forEach(function(s){(o[s.date]=o[s.date]||[]).push(s)});return o}
+
+function renderCal(){
+  var y=ui.y,m=ui.m;
+  $("#mtitle").textContent=MONTHS[m]+" "+y;
+  var first=new Date(y,m,1),off=(first.getDay()+6)%7,days=new Date(y,m+1,0).getDate(),bd=byDay();
+  var h=DOW.map(function(d){return'<div class="dow">'+d+"</div>"}).join("");
+  for(var i=0;i<off;i++)h+='<div class="cell empty" aria-hidden="true"></div>';
+  var mCount=0,games={},pl=0;
+  for(var d=1;d<=days;d++){
+    var k=key(y,m,d),list=bd[k]||[];
+    list.forEach(function(s){mCount++;games[s.game.toLowerCase()]=1;pl+=+s.players||0});
+    var chips=list.slice(0,3).map(function(s){return'<span class="chip" style="--h:'+hue(s.game)+'"><span class="nm">'+esc(dn(s.game))+"</span></span>"}).join("")+(list.length>3?'<span class="more">+'+(list.length-3)+"</span>":"");
+    h+='<button type="button" class="cell'+(k===todayKey?" today":"")+(k===ui.sel?" sel":"")+'" data-d="'+k+'" aria-label="'+d+" "+MGEN[m]+(list.length?", "+list.length+" "+plural(list.length,"rozgrywka","rozgrywki","rozgrywek"):"")+'"><span class="dn">'+d+'</span><span class="chips">'+chips+"</span></button>";
+  }
+  $("#cal").innerHTML=h;
+  var ng=Object.keys(games).length;
+  $("#msum").textContent=mCount?("W tym miesiącu: "+mCount+" "+plural(mCount,"rozgrywka","rozgrywki","rozgrywek")+" · "+ng+" "+plural(ng,"gra","gry","gier")+" · średnio "+num1(pl/mCount)+" os. przy stole"):"W tym miesiącu jeszcze nic nie zagrano.";
+}
+
+function sessCard(s,showDate){
+  var nm=namesOf(s),meta=[];
+  if(showDate)meta.push(fmtShort(s.date));
+  if(nm.length)meta.push(esc(nm.join(", ")));
+  if(+s.duration)meta.push(+s.duration+" min");
+  return'<article class="sess" style="--h:'+hue(s.game)+'"><div class="sbar"></div><div class="sbody">'+
+    '<div class="srow"><strong>'+esc(dn(s.game))+'</strong><span class="pill" title="Liczba graczy">'+ICON_P+(+s.players||"?")+"</span>"+
+    (function(){var c=catOf(s.game);return c&&c.b?'<span class="pill bgg" title="Miejsce w rankingu BoardGameGeek">BGG #'+c.b+"</span>":""})()+(s.winner?'<span class="pill win">Wygrana: '+esc(s.winner)+"</span>":"")+(s.ex?'<span class="pill ex">przykład</span>':"")+"</div>"+
+    (meta.length?'<div class="smeta">'+meta.join(" · ")+"</div>":"")+
+    (s.notes?'<p class="snote">'+esc(s.notes)+"</p>":"")+'<div class="smeta links">'+(dn(s.game)!==s.game?'<span>BGG: '+esc(s.game)+'</span>':'')+'<a class="bgglink" href="'+bggUrl(s.game)+'" target="_blank" rel="noopener">BoardGameGeek ↗</a></div>'+
+    "</div>"+(readOnly?"":'<button type="button" class="ghost sm" data-edit="'+esc(s.id)+'">Edytuj</button>')+"</article>";
+}
+
+function renderDay(){
+  var k=ui.sel,list=state.sessions.filter(function(s){return s.date===k});
+  var n=list.length;
+  $("#dayPanel").innerHTML='<div class="dayhead"><h3>'+fmtLong(k)+(k===todayKey?" <small>dziś</small>":"")+"</h3></div>"+
+    (n?'<div class="list">'+list.map(function(s){return sessCard(s,false)}).join("")+"</div>":'<p class="empty-msg">Brak rozgrywek tego dnia.</p>')+
+    (readOnly?"":'<div style="margin-top:12px"><button type="button" class="ghost sm" id="addDay">+ Dodaj rozgrywkę tego dnia</button></div>');
+}
+
+$("#cal").addEventListener("click",function(e){
+  var c=e.target.closest(".cell[data-d]");if(!c)return;
+  ui.sel=c.getAttribute("data-d");saveUI();renderCal();renderDay();
+  if(window.innerWidth<860){var p=$("#dayPanel"),r=p.getBoundingClientRect();if(r.top>window.innerHeight-120)p.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"})}
+});
+function shiftMonth(dm){var d=new Date(ui.y,ui.m+dm,1);ui.y=d.getFullYear();ui.m=d.getMonth();saveUI();renderCal()}
+$("#prev").addEventListener("click",function(){shiftMonth(-1)});
+$("#next").addEventListener("click",function(){shiftMonth(1)});
+$("#todayBtn").addEventListener("click",function(){ui.y=now.getFullYear();ui.m=now.getMonth();ui.sel=todayKey;saveUI();renderCal();renderDay()});
+document.addEventListener("click",function(e){
+  var ed=e.target.closest("[data-edit]");if(ed){openForm(ed.getAttribute("data-edit"));return}
+  var hr=e.target.closest("[data-open]");if(hr&&!readOnly){openForm(hr.getAttribute("data-open"));return}
+  if(e.target.id==="addDay")openForm(null,ui.sel);
+});
+
+/* statystyki */
+function inRange(s){
+  if(ui.range==="year")return s.date.slice(0,4)===String(now.getFullYear());
+  if(ui.range==="30"){var d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-29);return s.date>=key(d.getFullYear(),d.getMonth(),d.getDate())&&s.date<=todayKey}
+  return true;
+}
+function renderStats(){
+  var L=state.sessions.filter(inRange),n=L.length;
+  var games={},plDist={},wins={},pl=0,dur=0;
+  L.forEach(function(s){
+    var g=s.game.trim(),gk=g.toLowerCase();
+    if(!games[gk])games[gk]={name:g,c:0,last:s.date,pl:0};
+    games[gk].c++;games[gk].pl+=+s.players||0;if(s.date>games[gk].last)games[gk].last=s.date;
+    var p=+s.players||0;if(p)plDist[p]=(plDist[p]||0)+1;pl+=p;dur+=+s.duration||0;
+    if(s.winner){var w=s.winner.trim();wins[w]=(wins[w]||0)+1}
+  });
+  var top=Object.keys(games).map(function(k){return games[k]}).sort(function(a,b){return b.c-a.c||(a.last<b.last?1:-1)});
+  var seg='<div class="seg" role="group" aria-label="Zakres">'+[["all","Cały czas"],["year","Rok "+now.getFullYear()],["30","Ostatnie 30 dni"]].map(function(r){return'<button type="button" data-range="'+r[0]+'" aria-pressed="'+(ui.range===r[0])+'">'+r[1]+"</button>"}).join("")+"</div>";
+  var tiles='<div class="tiles">'+
+    '<div class="tile"><div class="v">'+n+'</div><div class="l">'+plural(n,"rozgrywka","rozgrywki","rozgrywek")+"</div></div>"+
+    '<div class="tile"><div class="v">'+top.length+'</div><div class="l">'+plural(top.length,"różna gra","różne gry","różnych gier")+"</div></div>"+
+    '<div class="tile"><div class="v">'+(n?num1(pl/n):"–")+'</div><div class="l">śr. liczba graczy</div></div>'+
+    '<div class="tile"><div class="v txt">'+(top[0]?esc(top[0].name):"–")+'</div><div class="l">najczęściej grana</div></div>'+
+  "</div>";
+  var maxG=top[0]?top[0].c:1;
+  var topH=top.length?'<div class="bars">'+top.slice(0,8).map(function(g){return'<div class="brow" style="--h:'+hue(g.name)+'"><span class="bn">'+esc(dn(g.name))+'</span><span class="bc">'+g.c+'×</span><span class="bt"><i style="width:'+Math.max(4,g.c/maxG*100)+'%"></i></span><span class="bs">ostatnio '+fmtShort(g.last)+" · śr. "+num1(g.pl/g.c)+" os.</span></div>"}).join("")+"</div>":'<p class="empty-msg">Brak rozgrywek w tym okresie.</p>';
+  var pk=Object.keys(plDist).map(Number).sort(function(a,b){return a-b}),maxP=0;pk.forEach(function(p){maxP=Math.max(maxP,plDist[p])});
+  var plH=pk.length?'<div class="bars">'+pk.map(function(p){return'<div class="brow"><span class="bn">'+p+" "+(p===1?"osoba (solo)":plural(p,"osoba","osoby","osób"))+'</span><span class="bc">'+plDist[p]+'</span><span class="bt"><i style="width:'+Math.max(4,plDist[p]/maxP*100)+'%"></i></span></div>'}).join("")+"</div>":'<p class="empty-msg">Brak danych.</p>';
+  /* 12 miesięcy */
+  var months=[],mx=0;
+  for(var i=11;i>=0;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1),pre=d.getFullYear()+"-"+pad(d.getMonth()+1),c=state.sessions.filter(function(s){return s.date.slice(0,7)===pre}).length;months.push({l:MSHORT[d.getMonth()],c:c,cur:i===0});mx=Math.max(mx,c)}
+  var colH='<div class="cols">'+months.map(function(o){return'<div class="col'+(o.cur?" cur":"")+'"><b>'+(o.c||"")+'</b><i class="'+(o.c?"":"zero")+'" style="height:'+(mx?o.c/mx*100:0)+'%"></i><span>'+o.l+"</span></div>"}).join("")+"</div>";
+  var wk=Object.keys(wins).sort(function(a,b){return wins[b]-wins[a]}),maxW=wk.length?wins[wk[0]]:1;
+  var winH=wk.length?'<div class="bars">'+wk.slice(0,6).map(function(w){return'<div class="brow" style="--h:40"><span class="bn">'+esc(w)+'</span><span class="bc">'+wins[w]+'</span><span class="bt"><i style="width:'+Math.max(4,wins[w]/maxW*100)+'%"></i></span></div>'}).join("")+"</div>":'<p class="empty-msg">Wpisuj zwycięzcę przy rozgrywce, a pojawi się tu ranking.</p>';
+  $("#v-statystyki").innerHTML=seg+tiles+'<div class="statgrid">'+
+    '<div class="card"><h3>Najczęściej grane</h3>'+topH+"</div>"+
+    '<div class="card"><h3>Aktywność<small>ostatnie 12 miesięcy</small></h3>'+colH+"</div>"+
+    '<div class="card"><h3>Ile osób przy stole</h3>'+plH+"</div>"+
+    top100Card()+
+    '<div class="card"><h3>Zwycięzcy</h3>'+winH+(dur?'<p class="smeta" style="margin-top:12px">Łączny czas gry w tym okresie: '+Math.floor(dur/60)+" h "+(dur%60)+" min</p>":"")+"</div>"+
+  "</div>";
+}
+$("#v-statystyki").addEventListener("click",function(e){var b=e.target.closest("[data-range]");if(!b)return;ui.range=b.getAttribute("data-range");saveUI();renderStats()});
+
+function rankCard(title,field,src,srcUrl){
+  var seen={};state.sessions.forEach(function(x){var c=catOf(x.game);if(c&&c[field]&&c[field]<=100)seen[c[field]]=c});
+  var ks=Object.keys(seen).map(Number).sort(function(a,b){return a-b}),n=ks.length;
+  return'<div class="card"><h3>'+title+'<small>cała historia</small></h3><p class="smeta" style="margin:0">Zagrane: <b style="color:var(--ink)">'+n+' ze 100</b></p><div class="prog"><i style="width:'+n+'%"></i></div>'+
+    (n?'<div class="tags">'+ks.map(function(r){return"<span><b>#"+r+"</b>"+esc(dn(seen[r].n))+"</span>"}).join("")+"</div>":'<p class="empty-msg">Żadna z zapisanych gier nie jest jeszcze w tym rankingu.</p>')+
+    '<p class="smeta" style="margin-top:10px">Źródło: <a class="bgglink" href="'+srcUrl+'" target="_blank" rel="noopener">'+src+'</a></p></div>';
+}
+function top100Card(){return rankCard("BoardGameGeek Top 100","b","boardgamegeek.com","https://boardgamegeek.com/browse/boardgame")}
+/* historia */
+function renderHist(){
+  var q=ui.q.trim().toLowerCase();
+  var L=sorted().filter(function(s){return!q||(s.game+" "+dn(s.game)+" "+(s.names||"")+" "+(s.winner||"")+" "+(s.notes||"")).toLowerCase().indexOf(q)>=0});
+  if(!L.length){$("#hist").innerHTML='<p class="empty-msg">'+(q?"Nic nie pasuje do wyszukiwania.":"Brak zapisanych rozgrywek. Dodaj pierwszą przyciskiem na dole.")+"</p>";return}
+  var groups=[],cur=null;
+  L.forEach(function(s){var m=s.date.slice(0,7);if(!cur||cur.m!==m){cur={m:m,items:[]};groups.push(cur)}cur.items.push(s)});
+  $("#hist").innerHTML=groups.map(function(g){var d=parseKey(g.m+"-01");return'<div class="hgroup"><h3>'+MONTHS[d.getMonth()]+" "+d.getFullYear()+" · "+g.items.length+"</h3>"+g.items.map(function(s){
+    var sub=[];var nm=namesOf(s);if(nm.length)sub.push(nm.join(", "));if(s.winner)sub.push("wygrana: "+s.winner);if(s.ex)sub.push("przykład");
+    return'<button type="button" class="hrow" data-open="'+esc(s.id)+'"><span class="hd">'+fmtShort(s.date)+'</span><span class="hg"><strong><span class="dotc" style="--h:'+hue(s.game)+'"></span>'+esc(dn(s.game))+"</strong>"+(sub.length?"<span>"+esc(sub.join(" · "))+"</span>":"")+'</span><span class="pill">'+ICON_P+(+s.players||"?")+"</span></button>"}).join("")+"</div>"}).join("");
+}
+var qEl=$("#q");qEl.value=ui.q;
+qEl.addEventListener("input",function(){ui.q=qEl.value;saveUI();renderHist()});
+
+/* formularz */
+var editing=null,players=2,lastFocus=null;
+function setPlayers(n){players=Math.max(1,Math.min(30,n));$("#fPlayers").textContent=players}
+$("#pMinus").addEventListener("click",function(){setPlayers(players-1)});
+$("#pPlus").addEventListener("click",function(){setPlayers(players+1)});
+$("#fNames").addEventListener("input",function(){var c=$("#fNames").value.split(",").map(function(x){return x.trim()}).filter(Boolean).length;if(c>players)setPlayers(c);fillNames()});
+function fillLists(){
+  var gs={},recent=[];
+  sorted().forEach(function(s){var k=s.game.trim().toLowerCase();if(!gs[k]){gs[k]=s.game.trim();recent.push(s)}});
+  $("#gamesList").innerHTML=Object.keys(gs).map(function(k){return'<option value="'+esc(gs[k])+'"></option>'}).join("");
+  $("#quick").innerHTML=recent.slice(0,6).map(function(s){return'<button type="button" data-g="'+esc(s.game)+'" data-p="'+(+s.players||2)+'" data-n="'+esc(s.names||"")+'"><i style="--h:'+hue(s.game)+'"></i>'+esc(dn(s.game))+"</button>"}).join("");
+  fillNames();
+}
+function fillNames(){
+  var set={};state.sessions.forEach(function(s){namesOf(s).forEach(function(n){set[n]=1})});
+  $("#fNames").value.split(",").forEach(function(n){n=n.trim();if(n)set[n]=1});
+  $("#namesList").innerHTML=Object.keys(set).map(function(n){return'<option value="'+esc(n)+'"></option>'}).join("");
+}
+$("#quick").addEventListener("click",function(e){
+  var b=e.target.closest("[data-g]");if(!b)return;
+  $("#fGame").value=dn(b.getAttribute("data-g"));$("#fAlias").value=ALIASES[b.getAttribute("data-g").toLowerCase()]||"";
+  if(!editing){setPlayers(+b.getAttribute("data-p"));if(!$("#fNames").value)$("#fNames").value=b.getAttribute("data-n");fillNames()}
+});
+var sIdx=-1,sItems=[];
+function suggest(){
+  var q=$("#fGame").value.trim().toLowerCase(),box=$("#sugg"),out=[],seen={};
+  var played={};state.sessions.forEach(function(s){var n=canon(s.game).toLowerCase();played[n]=(played[n]||0)+1});
+  function add(n,sub){var k=n.toLowerCase();if(seen[k])return;seen[k]=1;out.push({n:n,sub:sub})}
+  function sc(str){str=String(str).toLowerCase();return str===q?-1:str.indexOf(q)===0?0:(str.indexOf(" "+q)>=0?1:(str.indexOf(q)>=0?2:9))}
+  function sub(g,k){var a=[];if(ALIASES[k])a.push(g?g.n:k);if(g)a.push(gInfo(g));if(played[k])a.push("grane "+played[k]+"×");return a.filter(Boolean).join(" · ")}
+  if(!q){
+    Object.keys(played).sort(function(a,b){return played[b]-played[a]}).slice(0,5).forEach(function(k){var g=GIDX[k];add(g?g.n:k,sub(g,k)||"Twoja gra")});
+    GAMES.slice(0,8).forEach(function(g){add(g.n,sub(g,g.n.toLowerCase()))});
+  }else{
+    Object.keys(ALIASES).forEach(function(k){if(sc(ALIASES[k])<9){var g=GIDX[k];add(g?g.n:k,sub(g,k))}});
+    Object.keys(played).forEach(function(k){if(k.indexOf(q)>=0&&!GIDX[k])add(state.sessions.filter(function(s){return s.game.toLowerCase()===k})[0].game,"Twoja gra · grane "+played[k]+"×")});
+    var hits=[];for(var i=0;i<GAMES.length;i++){var v=sc(GAMES[i].n);if(v<9)hits.push([v,i])}
+    hits.sort(function(a,b){return a[0]-b[0]||a[1]-b[1]});
+    hits.slice(0,10).forEach(function(h){var g=GAMES[h[1]];add(g.n,sub(g,g.n.toLowerCase()))});
+    if(!out.length)out.push({n:$("#fGame").value.trim(),sub:"Nowa gra spoza bazy BGG"});
+  }
+  sItems=out.slice(0,9);sIdx=-1;
+  box.innerHTML=(q?"":'<div class="sh">'+(Object.keys(played).length?"Wasze gry i najwyżej oceniane na BGG":"Najwyżej oceniane na BGG")+"</div>")+sItems.map(function(o,i){return'<button type="button" role="option" data-i="'+i+'" tabindex="-1"><span class="sn"><b>'+esc(dn(o.n))+"</b><small>"+esc(o.sub)+'</small></span><span class="rk"></span></button>'}).join("");
+  box.hidden=!sItems.length;$("#fGame").setAttribute("aria-expanded",String(!box.hidden));
+}
+function hideSugg(){$("#sugg").hidden=true;$("#fGame").setAttribute("aria-expanded","false");sIdx=-1}
+function pickSugg(i){var o=sItems[i];if(!o)return;$("#fGame").value=dn(o.n);$("#fAlias").value=GIDX[o.n.toLowerCase()]?(ALIASES[o.n.toLowerCase()]||""):"";hideSugg();
+  if(!editing){var last=sorted().filter(function(s){return s.game.toLowerCase()===o.n.toLowerCase()})[0];if(last){setPlayers(+last.players||players);if(!$("#fNames").value)$("#fNames").value=last.names||""}else{var g=catOf(o.n);if(g&&g.pl){var m=g.pl.split("-").map(function(x){return parseInt(x,10)});var lo=m[0]||1,hi=m[1]||lo;setPlayers(Math.min(Math.max(players,lo),hi))}}}
+  $("#fDate").focus()}
+$("#fGame").addEventListener("input",suggest);
+$("#fGame").addEventListener("focus",suggest);
+$("#fGame").addEventListener("blur",function(){setTimeout(hideSugg,150)});
+$("#fGame").addEventListener("keydown",function(e){
+  var box=$("#sugg");if(box.hidden)return;
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();sIdx=(sIdx+(e.key==="ArrowDown"?1:-1)+sItems.length)%sItems.length;
+    box.querySelectorAll("button").forEach(function(b,i){b.classList.toggle("act",i===sIdx);if(i===sIdx)b.scrollIntoView({block:"nearest"})})}
+  else if(e.key==="Enter"&&sIdx>=0){e.preventDefault();pickSugg(sIdx)}
+  else if(e.key==="Escape"){e.stopPropagation();hideSugg()}
+});
+$("#sugg").addEventListener("mousedown",function(e){e.preventDefault()});
+$("#sugg").addEventListener("click",function(e){var b=e.target.closest("[data-i]");if(b)pickSugg(+b.getAttribute("data-i"))});
+function openForm(id,dateKey){
+  if(readOnly)return;
+  lastFocus=document.activeElement;
+  var s=id?state.sessions.filter(function(x){return x.id===id})[0]:null;
+  editing=s||null;
+  fillLists();
+  $("#fTitle").textContent=s?"Edytuj rozgrywkę":"Nowa rozgrywka";
+  $("#fGame").value=s?dn(s.game):"";$("#fAlias").value=s?(ALIASES[s.game.toLowerCase()]||""):"";
+  $("#fDate").value=s?s.date:(dateKey||ui.sel||todayKey);
+  setPlayers(s?(+s.players||2):2);
+  $("#fNames").value=s?(s.names||""):"";
+  $("#fWinner").value=s?(s.winner||""):"";
+  $("#fDur").value=s&&+s.duration?s.duration:"";
+  $("#fNotes").value=s?(s.notes||""):"";
+  $("#fErr").textContent="";
+  var del=$("#fDel");del.hidden=!s;del.classList.remove("armed");del.textContent="Usuń";
+  $("#quick").hidden=!!s;
+  $("#sheet").hidden=false;
+  setTimeout(function(){(s?$("#fGame"):$("#fGame")).focus()},30);
+}
+function closeForm(){hideSugg();$("#sheet").hidden=true;editing=null;if(lastFocus&&lastFocus.focus)try{lastFocus.focus()}catch(e){}}
+$("#sheet").addEventListener("click",function(e){if(e.target.closest("[data-close]"))closeForm()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!$("#sheet").hidden&&$("#sugg").hidden)closeForm()});
+$("#addBtn").addEventListener("click",function(){openForm(null,curView()==="kalendarz"?ui.sel:todayKey)});
+$("#fDel").addEventListener("click",function(){
+  var b=$("#fDel");
+  if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Na pewno usunąć?";return}
+  var id=editing&&editing.id;state.sessions=state.sessions.filter(function(s){return s.id!==id});
+  closeForm();persist();renderAll();
+});
+$("#form").addEventListener("submit",function(e){
+  e.preventDefault();
+  var game=$("#fGame").value.trim(),date=$("#fDate").value;
+  if(!game){$("#fErr").textContent="Wpisz nazwę gry.";$("#fGame").focus();return}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){$("#fErr").textContent="Wybierz datę rozgrywki.";$("#fDate").focus();return}
+  /* ujednolić pisownię z wcześniej zapisaną grą */
+  game=canon(game);var ce=GIDX[game.toLowerCase()];
+  if(!ce)state.sessions.forEach(function(s){if(s.game.trim().toLowerCase()===game.toLowerCase())game=s.game.trim()});
+  var al=$("#fAlias").value.trim(),gk=game.toLowerCase();
+  if(al&&al.toLowerCase()!==gk)state.aliases[gk]=al;else if(ce)delete state.aliases[gk];
+  setAliases(state.aliases);
+  var rec={id:editing?editing.id:(Date.now().toString(36)+Math.random().toString(36).slice(2,6)),date:date,game:game,players:players,
+    names:$("#fNames").value.split(",").map(function(x){return x.trim()}).filter(Boolean).join(", "),
+    winner:$("#fWinner").value.trim(),duration:Math.max(0,parseInt($("#fDur").value,10)||0),notes:$("#fNotes").value.trim()};
+  if(editing){state.sessions=state.sessions.map(function(s){return s.id===editing.id?rec:s})}
+  else state.sessions.push(rec);
+  var d=parseKey(date);ui.y=d.getFullYear();ui.m=d.getMonth();ui.sel=date;saveUI();
+  closeForm();persist();renderAll();
+});
+
+function renderAll(){renderBanner();renderCal();renderDay();renderView()}
+$("#expBtn").addEventListener("click",exportData);
+$("#impFile").addEventListener("change",function(e){var f=e.target.files&&e.target.files[0];if(f)importData(f);e.target.value=""});
+renderAll();
+if(state.sessions.length)setSave("ok");
+if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(function(){})}
+})();
+</script>
+</body>
+</html>
