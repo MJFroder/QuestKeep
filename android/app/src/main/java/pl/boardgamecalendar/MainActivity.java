@@ -8,7 +8,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.view.WindowInsets;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -16,6 +15,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.window.OnBackInvokedDispatcher;
 
@@ -23,7 +23,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
- * BoardGameCalendar: aplikacja pokazuje stronę z folderu assets/www (działa offline).
+ * QuestKeep: aplikacja pokazuje stronę z folderu assets/www (działa offline).
  * Dane rozgrywek zapisują się w pamięci WebView (localStorage) na telefonie.
  */
 public class MainActivity extends Activity {
@@ -37,28 +37,15 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         web = new WebView(this);
-        setContentView(web);
+        // WebView jest w ramce: odsuwamy ramkę od pasków systemu, bo sam WebView ignoruje padding
+        // dla elementów przyklejonych do dołu ekranu (np. przycisku „Dodaj rozgrywkę”).
+        FrameLayout root = new FrameLayout(this);
+        root.addView(web, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(root);
 
-        // Od Androida 15 aplikacja rysuje się pod paskami systemu: odsuwamy treść od pasków i klawiatury.
-        web.setOnApplyWindowInsetsListener((v, insets) -> {
-            int left, top, right, bottom;
-            if (Build.VERSION.SDK_INT >= 30) {
-                android.graphics.Insets bars = insets.getInsets(
-                        WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-                android.graphics.Insets ime = insets.getInsets(WindowInsets.Type.ime());
-                left = bars.left;
-                top = bars.top;
-                right = bars.right;
-                bottom = Math.max(bars.bottom, ime.bottom);
-            } else {
-                left = insets.getSystemWindowInsetLeft();
-                top = insets.getSystemWindowInsetTop();
-                right = insets.getSystemWindowInsetRight();
-                bottom = insets.getSystemWindowInsetBottom();
-            }
-            v.setPadding(left, top, right, bottom);
-            return insets;
-        });
+        // Paski systemu i klawiatura: aplikacja nie rysuje się pod nimi (styles.xml, windowOptOutEdgeToEdgeEnforcement),
+        // więc Android sam zmniejsza okno nad paskiem przycisków i nad klawiaturą (adjustResize).
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
