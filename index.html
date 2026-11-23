@@ -19,8 +19,8 @@
 <style>
 /* Layout: zakładki (kalendarz / statystyki / historia), kalendarz obok panelu dnia na szerokim ekranie, jedna kolumna na telefonie */
 :root{
-  --bg:#f2f4ef; --surface:#ffffff; --ink:#17221d; --muted:#5d6b64; --line:#dce2da;
-  --accent:#1b6a54; --accent-ink:#ffffff; --accent-soft:#dcece5; --hi:#e9a93a; --danger:#b23f2c;
+  --bg:#f6f1f2; --surface:#ffffff; --ink:#241a1d; --muted:#6b5c61; --line:#e6dadd;
+  --accent:#7b1e3a; --accent-ink:#ffffff; --accent-soft:#f3e0e6; --hi:#e9a93a; --danger:#c2512a;
   --gbg:91%; --gfg:28%; --gdot:44%;
   --font-d:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --font-b:"Figtree", "Segoe UI", system-ui, sans-serif;
@@ -28,15 +28,15 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0f1613; --surface:#17211d; --ink:#e5ede8; --muted:#97a69f; --line:#28352f;
-    --accent:#52b896; --accent-ink:#0b1712; --accent-soft:#1d3229; --hi:#e7b04d; --danger:#e47d68;
+    --bg:#161012; --surface:#21181b; --ink:#f0e6e9; --muted:#a8989d; --line:#372a2f;
+    --accent:#d9768f; --accent-ink:#1c0a10; --accent-soft:#3b2029; --hi:#e7b04d; --danger:#e47d68;
     --gbg:23%; --gfg:80%; --gdot:62%;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0f1613; --surface:#17211d; --ink:#e5ede8; --muted:#97a69f; --line:#28352f;
-  --accent:#52b896; --accent-ink:#0b1712; --accent-soft:#1d3229; --hi:#e7b04d; --danger:#e47d68;
+  --bg:#161012; --surface:#21181b; --ink:#f0e6e9; --muted:#a8989d; --line:#372a2f;
+  --accent:#d9768f; --accent-ink:#1c0a10; --accent-soft:#3b2029; --hi:#e7b04d; --danger:#e47d68;
   --gbg:23%; --gfg:80%; --gdot:62%;
   color-scheme:dark;
 }
@@ -582,6 +582,11 @@ renderAll();
 if(state.sessions.length)setSave("ok");
 if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(function(){})}
 })();
+</script>
+<script>
+/* Klawiatura: przewiń aktywne pole tak, żeby było widać, co się wpisuje */
+(function(){function show(){var e=document.activeElement;if(e&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName)){setTimeout(function(){try{e.scrollIntoView({block:"center",behavior:"smooth"})}catch(x){e.scrollIntoView()}},120)}}
+window.addEventListener("resize",show);document.addEventListener("focusin",function(){setTimeout(show,300)});})();
 </script>
 </body>
 </html>
